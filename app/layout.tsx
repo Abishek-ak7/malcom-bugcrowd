@@ -1,10 +1,11 @@
-// app/layout.js or pages/_app.js
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { Providers } from './providers';
+import { Toaster } from 'react-hot-toast';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '700'] 
+  weight: ['400', '500', '700'],
 });
 
 export const metadata = {
@@ -12,7 +13,11 @@ export const metadata = {
   description: 'Log in to your Malcom account',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <head>
@@ -22,7 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={inter.className}>
-        {children}
+        {/* ✅ Redux Provider wraps the whole app */}
+        <Providers>{children}</Providers>
+                <Toaster position="top-center" reverseOrder={false} />
       </body>
     </html>
   );

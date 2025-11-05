@@ -1,199 +1,302 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import React, { useState } from "react";
+import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { useRouter } from 'next/navigation';
+import { logout } from '../../redux/userSlice';
+import { supabase } from '../../lib/supabaseClient';
+import { toast } from 'react-hot-toast';
+
+interface Bounty {
+  id: string;
+  name: string;
+  tagline: string;
+  reward_min: number;
+  reward_max: number;
+  category: string;
+  logo_url: string;
+  description?: string;
+  created_at?: string;
+}
 
 const ActiveBountyPrograms: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<string | null>(null);
+  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const user = useSelector((state: any) => state.user.currentUser);
+  const isLoggedIn = !!user;
+
+  // ✅ Logout
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push('/login');
+  };
+
+  // ✅ Protected navigation
+  const handleProtectedNav = (path: string) => {
+    if (!isLoggedIn) router.push('/signup');
+    else router.push(path);
+  };
+
+  // ✅ Fetch bounties from Supabase
+  const fetchBounties = async (searchQuery = '', filterBy = '') => {
+    try {
+      setLoading(true);
+
+      let query = supabase
+        .from('bounty')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      // ✅ Apply search query
+      if (searchQuery.trim() !== '') {
+        query = query.ilike('name', `%${searchQuery}%`);
+      }
+
+      // ✅ Apply category filter
+      if (filterBy && filterBy.trim() !== '') {
+        query = query.eq('category', filterBy);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      setBounties(data || []);
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      toast.error('Failed to load bounty programs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Handle Search (on button click or Enter)
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    fetchBounties(search, filter || '');
+  };
+
+  // ✅ Real-time Updates (listen for Supabase table changes)
+  useEffect(() => {
+    fetchBounties();
+
+    const channel = supabase
+      .channel('bounty-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'bounty' },
+        () => fetchBounties(search, filter || '')
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // ✅ Optional: auto-refresh on search/filter change (debounced)
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchBounties(search, filter || '');
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [search, filter]);
+
+  const filters = [
+    'Web App',
+    'Mobile App',
+    'API',
+    'Blockchain',
+    'Cloud Infrastructure',
+    'IoT',
+    'Network',
+  ];
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light font-display">
-      {/* Header */}
-    <header className="flex items-center justify-between p-4 border-b border-slate-200">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-text-light dark:text-text-dark">Malcom_Company</h1>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              {/* Theme Toggle Button */}
-            
-              
-              <button className="p-2 rounded-md md:hidden">
-                <span className="material-symbols-outlined">menu</span>
-              </button>
-              
-              <nav className="hidden md:flex items-center gap-6">
-                <Link className="text-base font-medium text-black hover:text-primary dark:hover:text-primary hover:underline" href="/">
-                  Home
-                </Link>
-                <Link className="text-base font-medium text-blue-600  hover:text-primary dark:hover:text-primary hover:underline" href="/bounty">
-                  Active Programs
-                </Link>
-                <Link className="text-base font-medium text-black  hover:text-primary dark:hover:text-primary hover:underline" href="/compaigns">
-                  Compaigns
-                </Link>
-                <Link className="text-base font-medium text-black hover:text-primary dark:hover:text-primary hover:underline" href="/careers">
-                  Careers
-                </Link>
-                <Link  className="flex items-center justify-center rounded-lg  px-4 py-2 text-base font-bold text-white bg-blue-600 transition-colors" href="/login">
-                  Login/Signup
-                </Link>
-              </nav>
-            </div>
-          </header>
-
-      {/* Mobile Menu */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-10 bg-background-light  p-4 pt-20 flex flex-col animate-fadeIn">
-          <nav className="flex-1">
-            <ul className="space-y-4">
-              {["Home", "Active Programs", "Careers"].map((item) => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-2xl font-semibold text-text-primary  hover:text-primary"
-                  >
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="mt-auto">
-            <a
-              href="#"
-              className="block w-full text-center py-3 px-6 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700"
-            >
-              Login / Signup
-            </a>
+    <div className="bg-background-light font-display min-h-screen flex flex-col">
+      {/* ✅ Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 flex items-center justify-between py-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-blue-600 text-3xl">
+              bug_report
+            </span>
+            <h2 className="text-gray-900 text-xl font-bold">Malcom_Company</h2>
           </div>
-        </div>
-      )}
 
-      {/* Secondary Header */}
-      <div className="sticky top-[60px] z-10 bg-background-light  backdrop-blur-sm">
-        <div className="flex items-center justify-between p-4 pb-2">
-          <h1 className="text-text-primary  text-xl font-bold">
-            Active Bounty Programs
-          </h1>
-          <button className="flex items-center justify-center h-10 w-10 rounded-full text-text-primary ">
-            <span className="material-symbols-outlined">notifications</span>
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/" className="hover:text-blue-600 font-medium">
+              Home
+            </Link>
+            <Link href="/bounty" className="text-blue-600 font-bold">
+              Active Programs
+            </Link>
+            <Link href="/compaigns" className="hover:text-blue-600 font-medium">
+              Compaigns
+            </Link>
+            <button
+              onClick={() => handleProtectedNav('/careers')}
+              className="hover:text-blue-600 font-medium"
+            >
+              Careers
+            </button>
+
+            {isLoggedIn ? (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => router.push('/profile')}
+                  className="flex items-center gap-2 rounded-full border border-gray-300 p-2 hover:bg-gray-100 transition"
+                >
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="material-symbols-outlined text-xl">
+                      account_circle
+                    </span>
+                  )}
+                  <span className="hidden sm:inline text-sm font-medium">
+                    {user?.name || 'Profile'}
+                  </span>
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-sm font-medium text-red-600 hover:underline"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/login"
+                className="rounded-lg px-4 py-2 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 transition"
+              >
+                Login / Signup
+              </Link>
+            )}
+          </nav>
+
+          {/* Mobile Menu */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden text-gray-800"
+          >
+            <span className="material-symbols-outlined">menu</span>
           </button>
         </div>
+      </header>
 
-        {/* Search */}
-        <div className="px-4 py-3">
-          <div className="flex items-center rounded-lg bg-gray-100  h-12">
-            <span className="material-symbols-outlined pl-4 text-text-secondary ">
-              search
-            </span>
+      {/* ✅ Search and Filters */}
+      <div className="bg-white sticky top-[65px] border-b border-gray-200">
+        <div className="container mx-auto p-4 flex flex-col sm:flex-row items-center gap-3">
+          <form
+            onSubmit={handleSearch}
+            className="flex items-center w-full sm:w-auto bg-gray-100 rounded-full px-4 h-12"
+          >
+            <span className="material-symbols-outlined text-gray-500">search</span>
             <input
               type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for a program..."
-              className="flex-1 bg-transparent border-none outline-none px-4 text-text-primary  placeholder:text-text-secondary "
+              className="flex-1 bg-transparent px-4 outline-none"
             />
-          </div>
-        </div>
-
-        {/* Filter Buttons */}
-        <div className="flex gap-3 p-4 pt-0 overflow-x-auto">
-          {["Industry", "Reward Range", "Sort by: Newest"].map((filter, i) => (
             <button
-              key={filter}
-              className={`flex h-10 items-center justify-center gap-x-2 rounded-full px-4 ${
-                i < 2
-                  ? "bg-secondary  text-primary "
-                  : "bg-gray-100  text-text-secondary "
-              }`}
+              type="submit"
+              className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700"
             >
-              <p className="text-sm font-medium">{filter}</p>
-              <span className="material-symbols-outlined text-xl">
-                arrow_drop_down
-              </span>
+              Search
             </button>
-          ))}
+          </form>
+
+          <div className="flex gap-3 overflow-x-auto py-2 sm:py-0">
+            {filters.map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setFilter(f);
+                  fetchBounties(search, f);
+                }}
+                className={`px-4 py-2 rounded-full font-medium ${
+                  filter === f
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+            {filter && (
+              <button
+                onClick={() => {
+                  setFilter(null);
+                  fetchBounties(search, '');
+                }}
+                className="text-sm text-red-600 hover:underline"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Programs Grid */}
-      <main className="flex-1 pb-24">
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4 p-4">
-          {programs.map((p) => (
-            <Link href="/vulnerability"
-              key={p.name}
-              className="flex flex-col gap-3 pb-3 rounded-xl border border-gray-200  p-4 bg-white "
-            >
-              <div className="flex items-center gap-4">
-                <img
-                  src={p.logo}
-                  alt={`${p.name} logo`}
-                  className="w-12 h-12 rounded-lg"
-                />
+      {/* ✅ Programs Grid */}
+      <main className="flex-1 container mx-auto p-4">
+        {loading ? (
+          <p className="text-center text-gray-500">Loading bounties...</p>
+        ) : bounties.length > 0 ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-6">
+            {bounties.map((b) => (
+              <Link
+                href={`/vulnerability/${b.id}`}
+                key={b.id}
+                className="flex flex-col gap-3 rounded-xl border border-gray-200 p-6 bg-white hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={b.logo_url || '/default-logo.png'}
+                    alt={`${b.name} logo`}
+                    className="w-12 h-12 rounded-lg"
+                  />
+                  <div>
+                    <p className="text-gray-900 text-lg font-semibold">{b.name}</p>
+                    <p className="text-gray-600 text-sm">{b.tagline}</p>
+                  </div>
+                </div>
                 <div>
-                  <p className="text-text-primary  text-lg font-semibold">
-                    {p.name}
-                  </p>
-                  <p className="text-text-secondary  text-sm">
-                    {p.tagline}
+                  <p className="text-sm text-gray-500 font-medium">Reward:</p>
+                  <p className="text-green-600 text-lg font-bold">
+                    ${b.reward_min} - ${b.reward_max}
                   </p>
                 </div>
-              </div>
-              <div className="mt-2">
-                <p className="text-text-secondary  text-sm font-medium">
-                  Reward:
-                </p>
-                <p className="text-green-500 text-lg font-bold">
-                  {p.rewardRange}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${p.badgeColor}`}
-                >
-                  {p.category}
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {b.category}
                 </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 mt-10">No bounties found.</p>
+        )}
       </main>
+
+      {/* ✅ Footer */}
+      <footer className="bg-white border-t border-gray-200 py-6 text-center text-sm text-gray-500">
+        © 2025 Malcom_Company — All rights reserved.
+      </footer>
     </div>
   );
 };
-
-// ✅ Dummy Data
-const programs = [
-  {
-    name: "Innovate Inc.",
-    tagline: "Pioneering the future of tech.",
-    rewardRange: "$100 - $5,000",
-    category: "Web App",
-    badgeColor:
-      "bg-blue-100 text-blue-800 ",
-    logo:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDvk1dsXIrPLa0dtvSrzl2Onw1_PzbMEwSH_X-SrqAUA_CELudDFWultrDDgNcTDdUkXzGwJOnh4-tvBtX0rpoluCKFNiLnsjVNYn_9KDq2xN7PUrfHx0P-3-9qKxENWe13tOROXESTz-pTb-HISAKq3Pkt-VPK0BhDT3PhusaLbQoVv77Jx1UC44DFAcRbn-t88vdOODdAJ1PyRxsklZi7hMkzw-Y8hiMWDU9qDeO0PmHjEERxAB0MEmoqCavqFB5e5z5hrAGD7FoK",
-  },
-  {
-    name: "SecureSoft",
-    tagline: "Your digital fortress.",
-    rewardRange: "$200 - $10,000",
-    category: "Mobile App",
-    badgeColor:
-      "bg-orange-100 text-orange-800 ",
-    logo:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAafHli8VtMoXDUoFhieG51FcqmhjpxwKtDD3xev8IGHd65_wggoyHe8G326PeyOaVtKUNqeDY8Cb9NskO0LmtoSJHZ6o8I7bou74_t2BswuItZJkop_zSh0dt-k2rD0M0qq76Gl_eQgvBpa588ZFaVpJN_LSa2hH8nrdexUKA2-LpXfothq4dlNKMsai-PfCPK3wxsbRI5EA608R0AEPFRR-rfmYT7hq2RmcK9D-hbwz7KPZl14wQixCLofXPn_HWBnmKZ-NYYYUss",
-  },
-  {
-    name: "DataCore",
-    tagline: "Unlocking data potential.",
-    rewardRange: "$50 - $2,500",
-    category: "API",
-    badgeColor:
-      "bg-purple-100 text-purple-800 ",
-    logo:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAkiMywtFZrSV88_u3aJR1YuW2Rp1OFoMFsZ7OnNuur6D0EYmEITH1edL6bBXOuCtAkcKytDDNmQeWjebl7FEu2H-nJWqkJ_0ZOvmH5f5FxVAZnBm6_XEYEIbioAfAADoB0C326M_Szp1197RPWoUyJylfK-I_9L_jePBD7rEW1SQehkr13xwTc_VpwbfoO_DqP6iSUc56bjj0pFmNY2U4A_MVImGKMGpWvST6cseBMlchYFQHQOOs4gMTz-LexPP3-h0wOxF0sf29k",
-  },
-  // add others similarly if needed
-];
 
 export default ActiveBountyPrograms;

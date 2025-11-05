@@ -1,212 +1,192 @@
-"use client";
-import Link from "next/link";
-import React from "react";
+'use client';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
+import { toast } from 'react-hot-toast';
+import AdminLayout from '../../components/AdminLayout';
 
 const AdminDashboard: React.FC = () => {
+  const [reports, setReports] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<any | null>(null);
+
+  // ✅ Fetch reports
+  const fetchReports = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      toast.error('Failed to fetch reports');
+    } else {
+      setReports(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'Critical':
+        return 'bg-red-100 text-red-700 border border-red-300';
+      case 'High':
+        return 'bg-orange-100 text-orange-700 border border-orange-300';
+      case 'Medium':
+        return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
+      default:
+        return 'bg-green-100 text-green-700 border border-green-300';
+    }
+  };
+
   return (
-    <div className="bg-white font-display text-gray-800 min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-blue-600 text-3xl">
-                bug_report
+    <AdminLayout title="Reports">
+      {loading ? (
+        <p className="text-gray-500">Loading reports...</p>
+      ) : reports.length === 0 ? (
+        <p className="text-gray-500">No reports found.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {reports.map((r) => (
+            <div
+              key={r.id}
+              className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all cursor-pointer p-6 flex flex-col justify-between"
+              onClick={() => setSelectedReport(r)}
+            >
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
+                    {r.title}
+                  </h3>
+                  <span
+                    className={`text-xs font-medium px-3 py-1 rounded-full ${getSeverityColor(
+                      r.severity
+                    )}`}
+                  >
+                    {r.severity}
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Company:</strong> {r.company_name || '—'}
+                </p>
+
+                <p className="text-sm text-gray-600 mb-2 truncate">
+                  <strong>URL:</strong>{' '}
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {r.url}
+                  </a>
+                </p>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  Reported by <span className="font-medium">{r.username}</span>
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-4">
+                {new Date(r.created_at).toLocaleDateString()}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ✅ Modal for Viewing Full Report */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white w-full max-w-2xl rounded-xl shadow-xl p-6 relative overflow-y-auto max-h-[90vh]">
+            <button
+              onClick={() => setSelectedReport(null)}
+              className="absolute top-3 right-3 text-gray-500 hover:text-red-600 text-2xl"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              {selectedReport.title}
+            </h2>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span
+                className={`text-xs px-3 py-1 rounded-full font-medium ${getSeverityColor(
+                  selectedReport.severity
+                )}`}
+              >
+                {selectedReport.severity}
               </span>
-              <h1 className="text-2xl font-bold text-gray-800">Malcom_Company</h1>
+              <p className="text-sm text-gray-600">
+                Reported by <b>{selectedReport.username}</b> on{' '}
+                {new Date(selectedReport.created_at).toLocaleDateString()}
+              </p>
             </div>
 
-            {/* Navbar */}
-            <nav className="hidden lg:flex items-center gap-8">
-              <a
-                href="#"
-                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              >
-                Compaigns
-              </a>
-              <a
-                href="#"
-                className="text-gray-700 hover:text-blue-600 transition-colors font-medium"
-              >
-                Blogs
-              </a>
-             <Link className="text-base font-medium text-black hover:text-primary dark:hover:text-primary hover:underline" href="/admin-jobs">
-                  Careers
-                </Link>
-            </nav>
+            <div className="space-y-3 text-gray-700">
+              <p>
+                <strong>Company:</strong> {selectedReport.company_name || '—'}
+              </p>
+              <p>
+                <strong>Vulnerable URL:</strong>{' '}
+                <a
+                  href={selectedReport.url}
+                  target="_blank"
+                  className="text-blue-600 hover:underline"
+                >
+                  {selectedReport.url}
+                </a>
+              </p>
+              <p>
+                <strong>Steps to Reproduce:</strong>
+                <br />
+                <span className="whitespace-pre-wrap text-gray-700">
+                  {selectedReport.steps || 'No steps provided.'}
+                </span>
+              </p>
+            </div>
 
-      
+            {/* Optional File */}
+            {selectedReport.file_url && (
+              <div className="mt-5">
+                <strong>Attached File:</strong>
+                {selectedReport.file_url.endsWith('.png') ||
+                selectedReport.file_url.endsWith('.jpg') ||
+                selectedReport.file_url.endsWith('.jpeg') ? (
+                  <img
+                    src={selectedReport.file_url}
+                    alt="Report Screenshot"
+                    className="rounded-lg mt-3 border object-contain max-h-64"
+                  />
+                ) : (
+                  <a
+                    href={selectedReport.file_url}
+                    target="_blank"
+                    className="block mt-3 text-blue-600 hover:underline"
+                  >
+                    View Attachment
+                  </a>
+                )}
+              </div>
+            )}
 
-            {/* Mobile Menu */}
-            <button className="lg:hidden text-gray-700">
-              <span className="material-symbols-outlined">menu</span>
-            </button>
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setSelectedReport(null)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
-      </header>
-
-      {/* Main Section */}
-      <div className="flex flex-1">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col">
-          <nav className="flex-1 px-4 py-4 mt-4">
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 text-blue-600 font-semibold"
-                >
-                  <span className="material-symbols-outlined">description</span>
-                  <span>Reports</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/users"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                >
-                  <span className="material-symbols-outlined">group</span>
-                  <span>Users</span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/admin-bounty"
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                >
-                  <span className="material-symbols-outlined">apps</span>
-                  <span>Programs</span>
-                </Link>
-              </li>
-            </ul>
-          </nav>
-        </aside>
-
-        {/* Dashboard Content */}
-        <div className="flex-1 flex flex-col bg-gray-50">
-          {/* Topbar */}
-          <header className="h-20 flex items-center justify-between px-6 border-b border-gray-200 bg-white">
-            <h2 className="text-2xl font-semibold text-gray-800">Reports</h2>
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-gray-700">
-                notifications
-              </span>
-              <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
-                A
-              </div>
-            </div>
-          </header>
-
-          {/* Reports Section */}
-          <main className="flex-1 p-6">
-            {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
-              <div className="w-full md:w-1/2 lg:w-1/3">
-                <label className="flex flex-col min-w-40 h-12 w-full">
-                  <div className="flex w-full flex-1 items-stretch rounded-lg h-full bg-white border border-gray-200">
-                    <div className="text-gray-500 flex items-center justify-center pl-4">
-                      <span className="material-symbols-outlined">search</span>
-                    </div>
-                    <input
-                      placeholder="Search reports..."
-                      className="flex w-full px-4 border-none focus:outline-none text-base rounded-r-lg"
-                    />
-                  </div>
-                </label>
-              </div>
-              <div className="flex gap-4">
-                <button className="flex h-10 items-center justify-center gap-x-2 rounded-lg bg-white px-4 border border-gray-200">
-                  <p className="text-gray-700 text-sm font-medium">Severity</p>
-                  <span className="material-symbols-outlined text-gray-700 text-base">
-                    expand_more
-                  </span>
-                </button>
-                <button className="flex h-10 items-center justify-center gap-x-2 rounded-lg bg-white px-4 border border-gray-200">
-                  <p className="text-gray-700 text-sm font-medium">Status</p>
-                  <span className="material-symbols-outlined text-gray-700 text-base">
-                    expand_more
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Report Cards */}
-            <div className="space-y-4">
-              {/* Report 1 */}
-              <div className="bg-white p-6 rounded-xl border border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Cross-Site Scripting (XSS) in User Profile
-                  </h3>
-                  <span className="text-sm px-3 py-1 rounded-full bg-orange-100 text-orange-600 font-medium mt-2 sm:mt-0">
-                    High
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row text-sm text-gray-500 mb-4 gap-4">
-                  <p>
-                    Submitted by:{" "}
-                    <span className="font-medium text-gray-800">
-                      SecurityResearcher123
-                    </span>
-                  </p>
-                  <p>
-                    Date:{" "}
-                    <span className="font-medium text-gray-800">2024-10-26</span>
-                  </p>
-                </div>
-                <div className="flex gap-3 justify-end">
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                    View
-                  </button>
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-green-100 text-green-600 hover:bg-green-200 transition-colors">
-                    Approve
-                  </button>
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-red-100 text-red-600 hover:bg-red-200 transition-colors">
-                    Reject
-                  </button>
-                </div>
-              </div>
-
-              {/* Report 2 */}
-              <div className="bg-white p-6 rounded-xl border border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Insecure Direct Object Reference (IDOR) on File Upload
-                  </h3>
-                  <span className="text-sm px-3 py-1 rounded-full bg-red-100 text-red-600 font-medium mt-2 sm:mt-0">
-                    Critical
-                  </span>
-                </div>
-                <div className="flex flex-col sm:flex-row text-sm text-gray-500 mb-4 gap-4">
-                  <p>
-                    Submitted by:{" "}
-                    <span className="font-medium text-gray-800">
-                      EthicalHacker456
-                    </span>
-                  </p>
-                  <p>
-                    Date:{" "}
-                    <span className="font-medium text-gray-800">2024-10-25</span>
-                  </p>
-                </div>
-                <div className="flex gap-3 justify-end">
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">
-                    View
-                  </button>
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-green-100 text-green-600 hover:bg-green-200 transition-colors">
-                    Approve
-                  </button>
-                  <button className="h-10 px-4 rounded-lg text-sm font-semibold bg-red-100 text-red-600 hover:bg-red-200 transition-colors">
-                    Reject
-                  </button>
-                </div>
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
+      )}
+    </AdminLayout>
   );
 };
 
