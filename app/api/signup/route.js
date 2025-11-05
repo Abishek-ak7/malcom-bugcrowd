@@ -54,25 +54,38 @@ export async function POST(req) {
       return Response.json({ message: authError.message }, { status: 400 });
     }
 
-    // --- Hash password before storing (optional but safer) ---
+    // --- Hash password before storing ---
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // --- Insert user data into your custom users table ---
-    const { error: insertError } = await supabase.from("users").insert([
-      {
-        id: authData.user?.id,
-        username,
-        email,
-        password: hashedPassword,
-      },
-    ]);
+    // --- Insert user data into your 'users' table ---
+    const { data: insertedUser, error: insertError } = await supabase
+      .from("users")
+      .insert([
+        {
+          id: authData.user?.id,
+          username,
+          email,
+          password: hashedPassword,
+        },
+      ])
+      .select()
+      .single(); // fetch the newly inserted user
 
     if (insertError) {
       return Response.json({ message: insertError.message }, { status: 400 });
     }
 
+    // ✅ Return both message + user data to frontend
     return Response.json(
-      { message: "Account created successfully!" },
+      {
+        message: "Account created successfully!",
+        user: {
+          id: insertedUser.id,
+          name: insertedUser.username,
+          email: insertedUser.email,
+          avatar: insertedUser.avatar || "",
+        },
+      },
       { status: 201 }
     );
   } catch (error) {
