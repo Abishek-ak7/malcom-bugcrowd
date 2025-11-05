@@ -35,20 +35,20 @@ export default function Login() {
 
       const data = await res.json();
 
-      if (res.ok && data.user) {
-        // ✅ Update Redux state on success
-        dispatch(
-          loginSuccess({
-            id: data.user.id,
-            name: data.user.name,
-            email: data.user.email,
-            avatar: data.user.avatar || '',
-          })
-        );
+            if (res.ok && data.user) {
+          dispatch(
+            loginSuccess({
+              id: data.user.id,
+              name: data.user.username || "User",
+              email: data.user.email,
+              avatar: data.user.avatar || "",
+            })
+          );
 
-        setMessage('Login successful! Redirecting...');
-        setTimeout(() => router.push('/'), 1200);
-      } else {
+          setMessage("Login successful! Redirecting...");
+          setTimeout(() => router.push(data.redirect || "/"), 1200);
+        }
+else {
         dispatch(loginFailure(data.message || 'Invalid credentials'));
         setMessage(data.message || 'Invalid email or password.');
       }

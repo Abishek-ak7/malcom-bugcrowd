@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import AdminGuard from '@/components/AdminGuard';
 
 const AddJobPage: React.FC = () => {
   const router = useRouter();
@@ -63,6 +64,7 @@ const AddJobPage: React.FC = () => {
   };
 
   return (
+    <AdminGuard>
     <div className="bg-background-light font-display text-text-primary min-h-screen flex flex-col">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -181,6 +183,7 @@ const AddJobPage: React.FC = () => {
         © 2025 Malcom_Company — All rights reserved.
       </footer>
     </div>
+    </AdminGuard>
   );
 };
 
