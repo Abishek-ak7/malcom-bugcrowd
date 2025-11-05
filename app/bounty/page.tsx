@@ -42,7 +42,11 @@ const ActiveBountyPrograms: React.FC = () => {
   const handleProtectedNav = (path: string) => {
     if (!isLoggedIn) router.push('/signup');
     else router.push(path);
+    setMenuOpen(false);
   };
+
+  // ✅ Toggle mobile menu
+  const toggleMenu = () => setMenuOpen(!menuOpen);
 
   // ✅ Fetch bounties from Supabase
   const fetchBounties = async (searchQuery = '', filterBy = '') => {
@@ -54,18 +58,10 @@ const ActiveBountyPrograms: React.FC = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      // ✅ Apply search query
-      if (searchQuery.trim() !== '') {
-        query = query.ilike('name', `%${searchQuery}%`);
-      }
-
-      // ✅ Apply category filter
-      if (filterBy && filterBy.trim() !== '') {
-        query = query.eq('category', filterBy);
-      }
+      if (searchQuery.trim() !== '') query = query.ilike('name', `%${searchQuery}%`);
+      if (filterBy && filterBy.trim() !== '') query = query.eq('category', filterBy);
 
       const { data, error } = await query;
-
       if (error) throw error;
 
       setBounties(data || []);
@@ -77,31 +73,23 @@ const ActiveBountyPrograms: React.FC = () => {
     }
   };
 
-  // ✅ Handle Search (on button click or Enter)
-  const handleSearch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    fetchBounties(search, filter || '');
-  };
-
-  // ✅ Real-time Updates (listen for Supabase table changes)
+  // ✅ Load data & real-time updates
   useEffect(() => {
     fetchBounties();
 
     const channel = supabase
       .channel('bounty-changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'bounty' },
-        () => fetchBounties(search, filter || '')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bounty' }, () =>
+        fetchBounties(search, filter || '')
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
   }, []);
 
-  // ✅ Optional: auto-refresh on search/filter change (debounced)
+  // ✅ Debounced search/filter refresh
   useEffect(() => {
     const timeout = setTimeout(() => {
       fetchBounties(search, filter || '');
@@ -109,42 +97,25 @@ const ActiveBountyPrograms: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [search, filter]);
 
-  const filters = [
-    'Web App',
-    'Mobile App',
-    'API',
-    'Blockchain',
-    'Cloud Infrastructure',
-    'IoT',
-    'Network',
-  ];
+  const filters = ['Web App', 'Mobile App', 'API', 'Blockchain', 'Cloud Infrastructure', 'IoT', 'Network'];
 
   return (
-    <div className="bg-background-light font-display min-h-screen flex flex-col">
+    <div className="bg-white font-display min-h-screen flex flex-col text-gray-900">
       {/* ✅ Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4 flex items-center justify-between py-4">
+          {/* Logo */}
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-600 text-3xl">
-              bug_report
-            </span>
+            <span className="material-symbols-outlined text-blue-600 text-3xl">bug_report</span>
             <h2 className="text-gray-900 text-xl font-bold">Malcom_Company</h2>
           </div>
 
+          {/* Desktop Navbar */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="hover:text-blue-600 font-medium">
-              Home
-            </Link>
-            <Link href="/bounty" className="text-blue-600 font-bold">
-              Active Programs
-            </Link>
-            <Link href="/compaigns" className="hover:text-blue-600 font-medium">
-              Compaigns
-            </Link>
-            <button
-              onClick={() => handleProtectedNav('/careers')}
-              className="hover:text-blue-600 font-medium"
-            >
+            <Link href="/" className="hover:text-blue-600 font-medium">Home</Link>
+            <Link href="/bounty" className="text-blue-600 font-bold">Active Programs</Link>
+            <Link href="/compaigns" className="hover:text-blue-600 font-medium">Compaigns</Link>
+            <button onClick={() => handleProtectedNav('/careers')} className="hover:text-blue-600 font-medium">
               Careers
             </button>
 
@@ -152,27 +123,16 @@ const ActiveBountyPrograms: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => router.push('/profile')}
-                  className="flex items-center gap-2 rounded-full border border-gray-300 p-2 hover:bg-gray-100 transition"
+                  className="flex items-center gap-2 border border-gray-300 rounded-full p-2 hover:bg-gray-100 transition"
                 >
                   {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
+                    <img src={user.avatar} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
                   ) : (
-                    <span className="material-symbols-outlined text-xl">
-                      account_circle
-                    </span>
+                    <span className="material-symbols-outlined text-xl">account_circle</span>
                   )}
-                  <span className="hidden sm:inline text-sm font-medium">
-                    {user?.name || 'Profile'}
-                  </span>
+                  <span className="hidden sm:inline text-sm font-medium">{user?.name || 'Profile'}</span>
                 </button>
-                <button
-                  onClick={handleLogout}
-                  className="text-sm font-medium text-red-600 hover:underline"
-                >
+                <button onClick={handleLogout} className="text-sm font-medium text-red-600 hover:underline">
                   Logout
                 </button>
               </div>
@@ -186,40 +146,99 @@ const ActiveBountyPrograms: React.FC = () => {
             )}
           </nav>
 
-          {/* Mobile Menu */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-gray-800"
-          >
-            <span className="material-symbols-outlined">menu</span>
+          {/* Mobile Menu Button */}
+          <button onClick={toggleMenu} className="md:hidden text-gray-800">
+            <span className="material-symbols-outlined text-3xl">{menuOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
+
+        {/* ✅ Mobile Dropdown Menu */}
+        {menuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 shadow-lg animate-slideDown">
+            <nav className="flex flex-col space-y-4 p-4 text-gray-700">
+              <Link href="/" onClick={() => setMenuOpen(false)} className="font-semibold text-blue-600">
+                Home
+              </Link>
+              <Link href="/bounty" onClick={() => setMenuOpen(false)} className="font-bold text-blue-600">
+                Active Programs
+              </Link>
+              <Link href="/compaigns" onClick={() => setMenuOpen(false)} className="font-medium hover:text-blue-600">
+                Compaigns
+              </Link>
+              <button onClick={() => handleProtectedNav('/careers')} className="text-left font-medium hover:text-blue-600">
+                Careers
+              </button>
+
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={() => {
+                      router.push('/profile');
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 border border-gray-300 rounded-full p-2 hover:bg-gray-100 transition"
+                  >
+                    {user?.avatar ? (
+                      <img src={user.avatar} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">account_circle</span>
+                    )}
+                    <span className="text-sm font-medium">{user?.name || 'Profile'}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMenuOpen(false);
+                    }}
+                    className="text-red-600 font-medium hover:underline text-left"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-4 py-2 bg-blue-600 text-white font-semibold hover:bg-blue-700 text-center"
+                >
+                  Login / Signup
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
       </header>
 
-      {/* ✅ Search and Filters */}
-      <div className="bg-white sticky top-[65px] border-b border-gray-200">
-        <div className="container mx-auto p-4 flex flex-col sm:flex-row items-center gap-3">
+{/* ✅ Search and Filters */}
+      <div className="bg-white sticky top-[65px] border-b border-gray-200 z-10">
+        <div className="container mx-auto px-4 py-3 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          
+          {/* 🔍 Search Bar */}
           <form
-            onSubmit={handleSearch}
-            className="flex items-center w-full sm:w-auto bg-gray-100 rounded-full px-4 h-12"
+            onSubmit={(e) => {
+              e.preventDefault();
+              fetchBounties(search, filter || '');
+            }}
+            className="flex w-full lg:w-[40%] bg-gray-100 rounded-full px-4 py-2 h-12 items-center shadow-sm"
           >
-            <span className="material-symbols-outlined text-gray-500">search</span>
+            <span className="material-symbols-outlined text-gray-500 text-xl">search</span>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for a program..."
-              className="flex-1 bg-transparent px-4 outline-none"
+              className="flex-1 bg-transparent px-4 outline-none text-gray-700 placeholder-gray-500 text-sm sm:text-base"
             />
             <button
               type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded-full font-medium hover:bg-blue-700"
+              className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-full font-medium hover:bg-blue-700 transition text-sm sm:text-base"
             >
               Search
             </button>
           </form>
 
-          <div className="flex gap-3 overflow-x-auto py-2 sm:py-0">
+          {/* 🧭 Filters */}
+          <div className="flex flex-wrap sm:flex-nowrap justify-center lg:justify-end gap-2 sm:gap-3 overflow-x-auto py-2 scrollbar-hide">
             {filters.map((f) => (
               <button
                 key={f}
@@ -227,29 +246,34 @@ const ActiveBountyPrograms: React.FC = () => {
                   setFilter(f);
                   fetchBounties(search, f);
                 }}
-                className={`px-4 py-2 rounded-full font-medium ${
+                className={`whitespace-nowrap px-4 py-2 rounded-full text-sm sm:text-base font-medium transition ${
                   filter === f
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-blue-600 text-white shadow-sm'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 {f}
               </button>
             ))}
+
             {filter && (
               <button
                 onClick={() => {
                   setFilter(null);
                   fetchBounties(search, '');
                 }}
-                className="text-sm text-red-600 hover:underline"
+                className="text-sm text-red-600 hover:underline font-medium"
               >
                 Clear Filter
               </button>
             )}
           </div>
         </div>
+
+        {/* Small Screen Divider */}
+        <div className="border-t border-gray-100 block lg:hidden"></div>
       </div>
+
 
       {/* ✅ Programs Grid */}
       <main className="flex-1 container mx-auto p-4">
@@ -267,7 +291,7 @@ const ActiveBountyPrograms: React.FC = () => {
                   <img
                     src={b.logo_url || '/default-logo.png'}
                     alt={`${b.name} logo`}
-                    className="w-12 h-12 rounded-lg"
+                    className="w-12 h-12 rounded-lg object-cover"
                   />
                   <div>
                     <p className="text-gray-900 text-lg font-semibold">{b.name}</p>
@@ -295,6 +319,26 @@ const ActiveBountyPrograms: React.FC = () => {
       <footer className="bg-white border-t border-gray-200 py-6 text-center text-sm text-gray-500">
         © 2025 Malcom_Company — All rights reserved.
       </footer>
+
+      {/* ✅ Simple Dropdown Animation */}
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.25s ease-out;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
     </div>
   );
 };

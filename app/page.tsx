@@ -4,12 +4,14 @@ import Link from 'next/link';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { logout } from '../redux/userSlice';
+import { useState } from 'react';
 
 export default function BugVerse() {
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.user.currentUser);
   const isLoggedIn = !!user;
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -19,12 +21,15 @@ export default function BugVerse() {
   const handleProtectedNav = (path: string) => {
     if (!isLoggedIn) router.push('/signup');
     else router.push(path);
+    setMenuOpen(false);
   };
+
+  const toggleMenu = () => setMenuOpen(!menuOpen);
 
   return (
     <div className="bg-white font-display min-h-screen flex flex-col text-gray-900">
       {/* ✅ Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between py-4">
             {/* Logo */}
@@ -32,10 +37,12 @@ export default function BugVerse() {
               <span className="material-symbols-outlined text-blue-600 text-3xl">
                 bug_report
               </span>
-              <h1 className="text-xl font-bold tracking-tight">Malcom_Company</h1>
+              <h1 className="text-xl font-bold tracking-tight">
+                Malcom_Company
+              </h1>
             </div>
 
-            {/* Navbar */}
+            {/* Desktop Navbar */}
             <nav className="hidden md:flex items-center space-x-8">
               <Link
                 href="/"
@@ -100,12 +107,95 @@ export default function BugVerse() {
               )}
             </nav>
 
-            {/* Mobile Menu */}
-            <button className="md:hidden text-gray-700">
-              <span className="material-symbols-outlined">menu</span>
+            {/* Mobile Menu Button */}
+            <button
+              onClick={toggleMenu}
+              className="md:hidden text-gray-700 focus:outline-none"
+            >
+              <span className="material-symbols-outlined text-3xl">
+                {menuOpen ? 'close' : 'menu'}
+              </span>
             </button>
           </div>
         </div>
+
+        {/* ✅ Mobile Dropdown Menu */}
+        {menuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 shadow-lg animate-slideDown">
+            <nav className="flex flex-col space-y-4 p-4 text-gray-700">
+              <Link
+                href="/"
+                onClick={() => setMenuOpen(false)}
+                className="font-semibold text-blue-600"
+              >
+                Home
+              </Link>
+              <Link
+                href="/compaigns"
+                onClick={() => setMenuOpen(false)}
+                className="font-medium hover:text-blue-600"
+              >
+                Compaigns
+              </Link>
+              <button
+                onClick={() => handleProtectedNav('/bounty')}
+                className="text-left font-medium hover:text-blue-600"
+              >
+                Programs
+              </button>
+              <button
+                onClick={() => handleProtectedNav('/careers')}
+                className="text-left font-medium hover:text-blue-600"
+              >
+                Careers
+              </button>
+
+              {isLoggedIn ? (
+                <>
+                  <button
+                    onClick={() => {
+                      router.push('/profile');
+                      setMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 border border-gray-300 rounded-full p-2 hover:bg-gray-100 transition"
+                  >
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">
+                        account_circle
+                      </span>
+                    )}
+                    <span className="text-sm font-medium">
+                      {user?.name || 'Profile'}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMenuOpen(false);
+                    }}
+                    className="text-red-600 font-medium hover:underline text-left"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-4 py-2 bg-blue-600 text-white font-semibold hover:bg-blue-700 text-center"
+                >
+                  Login / Signup
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* ✅ Hero Section */}
@@ -251,6 +341,23 @@ export default function BugVerse() {
           © 2025 Malcom_Company — Empowering Cybersecurity Innovation
         </p>
       </footer>
+
+      {/* ✅ Simple Animation for Dropdown */}
+      <style jsx>{`
+        @keyframes slideDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slideDown {
+          animation: slideDown 0.25s ease-out;
+        }
+      `}</style>
     </div>
   );
 }
