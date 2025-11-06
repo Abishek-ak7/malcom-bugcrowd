@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../../redux/userSlice';
+import Image from 'next/image';
+import Logo from '../../public/image.png';
 
 const Signup = () => {
   const router = useRouter();
@@ -126,9 +128,15 @@ const Signup = () => {
     <div className="relative flex min-h-screen w-full flex-col items-center justify-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-8 space-y-6">
         {/* 🔹 Header */}
-        <div className="flex justify-center">
-          <span className="text-2xl font-bold text-slate-800">Malcom_Company</span>
-        </div>
+           <div className="flex items-center space-x-2">
+              <Image
+                src={Logo} // 👈 place your image inside /public/images/
+                alt="Malcom Company Logo"
+                width={150} // 👈 set width in px
+                height={150} // 👈 set height in px
+                priority
+              />
+            </div>
 
         <h1 className="text-slate-800 text-2xl font-bold text-center">
           Create Your Malcom Account

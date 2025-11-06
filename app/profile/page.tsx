@@ -7,6 +7,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../../lib/supabaseClient';
 import { updateUser } from '../../redux/userSlice';
+import Logo from '../../public/image.png';
+
 
 /**
  * Bug bounty researcher profile page (light theme, LinkedIn-like).
@@ -237,9 +239,16 @@ export default function ProfilePage() {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-3xl text-blue-600">security</span>
             <div>
-              <h1 className="text-xl font-bold">Bug Bounty Profile</h1>
+                 <div className="flex items-center space-x-2">
+              <Image
+                src={Logo} // 👈 place your image inside /public/images/
+                alt="Malcom Company Logo"
+                width={150} // 👈 set width in px
+                height={150} // 👈 set height in px
+                priority
+              />
+            </div>
               <p className="text-sm text-gray-500">Public researcher profile & stats</p>
             </div>
           </div>

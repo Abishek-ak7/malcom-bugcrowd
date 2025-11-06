@@ -5,6 +5,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { logout } from '../redux/userSlice';
 import { useState } from 'react';
+import Image from 'next/image';
+import Logo from '../public/image.png'
 
 export default function BugVerse() {
   const router = useRouter();
@@ -34,14 +36,14 @@ export default function BugVerse() {
           <div className="flex items-center justify-between py-4">
             {/* Logo */}
             <div className="flex items-center space-x-2">
-              <span className="material-symbols-outlined text-blue-600 text-3xl">
-                bug_report
-              </span>
-              <h1 className="text-xl font-bold tracking-tight">
-                Malcom_Company
-              </h1>
+              <Image
+                src={Logo} // 👈 place your image inside /public/images/
+                alt="Malcom Company Logo"
+                width={150} // 👈 set width in px
+                height={150} // 👈 set height in px
+                priority
+              />
             </div>
-
             {/* Desktop Navbar */}
             <nav className="hidden md:flex items-center space-x-8">
               <Link

@@ -3,6 +3,8 @@ import Link from 'next/link';
 import React, { ReactNode, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import AdminGuard from './AdminGuard';
+import Image from 'next/image';
+import Logo from '../public/image.png';
 
 interface AdminLayoutProps {
   title?: string;
@@ -31,14 +33,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ title, children }) => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="container mx-auto px-4 flex justify-between items-center h-16 md:h-20">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-blue-600 text-3xl">
-              bug_report
-            </span>
-            <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-              Malcom_Company
-            </h1>
-          </div>
+            <div className="flex items-center space-x-2">
+              <Image
+                src={Logo} // 👈 place your image inside /public/images/
+                alt="Malcom Company Logo"
+                width={150} // 👈 set width in px
+                height={150} // 👈 set height in px
+                priority
+              />
+            </div>
 
           {/* Desktop Navbar */}
           <nav className="hidden lg:flex items-center gap-8">
