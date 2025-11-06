@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { loginStart, loginSuccess, loginFailure } from '../../redux/userSlice';
+import Image from 'next/image';
+import Logo from '../../public/image.png';
 
 export default function Login() {
   const dispatch = useDispatch();
@@ -80,18 +82,17 @@ else {
         <div className="w-full max-w-md">
           {/* Title */}
           <div className="mb-8 text-center">
-            <svg
-              className="mx-auto h-12 w-auto text-blue-600 fill-current"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.59L7.71 13.3a.996.996 0 111.41-1.41L11 13.17V7a1 1 0 012 0v6.17l1.88-1.88a.996.996 0 111.41 1.41L13.41 16.6a1 1 0 01-1.41 0z" />
-            </svg>
-
-            <h1 className="text-[#0d141b] tracking-light text-[32px] font-bold leading-tight pt-6 pb-3">
-              Log In to Malcom_Company
-            </h1>
-            <p className="text-[#4c739a] dark:text-gray-400 text-base">
-              Enter your credentials to access your account.
+            <div className="flex justify-center items-center space-x-2">
+              <Image
+                src={Logo} // 👈 place your image inside /public/images/
+                alt="Malcom Company Logo"
+                width={150} // 👈 set width in px
+                height={150} // 👈 set height in px
+                priority
+              />
+            </div>
+            <p className="text-[#4c739a] dark:text-gray-400 text-base mt-3">
+              Welcome back to the Bugverse.
             </p>
           </div>
 
